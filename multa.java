@@ -249,7 +249,8 @@ public class multa extends AppCompatActivity {
         String SOAP_ACTION = "http://nowait.com.ar/SetMulta";
         String METHOD_NAME = "SetMulta";
         String NAMESPACE = "http://nowait.com.ar/";
-        String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
+        //String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
+        String URL = "http://52.205.252.50:8080/wsEme.asmx";
 
         try {
             SoapObject Request = new SoapObject(NAMESPACE, METHOD_NAME);

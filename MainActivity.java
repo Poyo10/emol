@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (RetValWS<0) {
                 Toast.makeText(getBaseContext(), "Error en la respuesta del servidor.", Toast.LENGTH_SHORT).show();
-            };
+            }
             String lsX= RetTxt;
             if (! RetFrente.equals("")){
                 lsX = lsX +  "\n" + RetFrente +  "\n" + RetDire;
@@ -206,7 +206,8 @@ public class MainActivity extends AppCompatActivity {
         String SOAP_ACTION = "http://nowait.com.ar/CheckDominio";
         String METHOD_NAME = "CheckDominio";
         String NAMESPACE = "http://nowait.com.ar/";
-        String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
+        //String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
+        String URL = "http://52.205.252.50:8080/wsEme.asmx";
 
         try {
             SoapObject Request = new SoapObject(NAMESPACE, METHOD_NAME);
@@ -249,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void AddLine(String tDomi,  String tTxt ){
-        String tHora="";
+        String tHora;
         Calendar c = new GregorianCalendar();
         tHora = String.format("%02d", c.get(Calendar.HOUR) );
         tHora = tHora + ":" + String.format("%02d", c.get(Calendar.MINUTE) );

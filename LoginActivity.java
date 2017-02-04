@@ -166,7 +166,13 @@ public class LoginActivity extends AppCompatActivity {
         String SOAP_ACTION = "http://nowait.com.ar/Login";
         String METHOD_NAME = "Login";
         String NAMESPACE = "http://nowait.com.ar/";
-        String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
+        //String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
+
+
+       // String SOAP_ACTION = "http://52.205.252.50/Login";
+       // String METHOD_NAME = "Login";
+       // String NAMESPACE = "http://52.205.252.50/";
+        String URL = "http://52.205.252.50:8080/wsEme.asmx";
 
         try {
             SoapObject Request = new SoapObject(NAMESPACE, METHOD_NAME);
