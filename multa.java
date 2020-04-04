@@ -4,19 +4,21 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+//import com.android.support.media.ExifInterface;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.ButtonBarLayout;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,12 +32,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 
 public class multa extends AppCompatActivity {
+
 
     SoapObject resSoap;
     int RetValWS =0;
@@ -62,6 +64,20 @@ public class multa extends AppCompatActivity {
     String gNombreUsu = "";
     int gIdMuni = 0;
     String gDominio = "";
+    String gLatitud = "";
+    String gLongitud = "";
+
+
+/*    // Keys for storing activity state in the Bundle.
+    private final static String KEY_REQUESTING_LOCATION_UPDATES = "requesting-location-updates";
+    private final static String KEY_LOCATION = "location";
+    private final static String KEY_LAST_UPDATED_TIME_STRING = "last-updated-time-string";
+    private Boolean mRequestingLocationUpdates;
+    private LocationRequest mLocationRequest;
+    private LocationSettingsRequest mLocationSettingsRequest;
+    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
+    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
+            UPDATE_INTERVAL_IN_MILLISECONDS / 2;*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,41 +89,51 @@ public class multa extends AppCompatActivity {
         btAceptar = (Button) findViewById(R.id.btAceptar);
         mProgressView = findViewById(R.id.login_progress);
 
+        // Quitar para produccion ojota.
+        gEmail = "fabio_d_rossi@hotmail.com";
+        gPass = "123456";
+        gIdMuni = 1;
+        gIdUsu = 1;
+        gIdTipoUsu =1;
+        gNombreUsu = "Fabio";
+        // Quitar para produccion.
+
         gEmail = getIntent().getStringExtra("tEmail");
         gPass = getIntent().getStringExtra("tPass");
-        gIdMuni = getIntent().getIntExtra("tIdMuni",0);
-        gIdUsu = getIntent().getIntExtra("tIdUsu",0);
-        gIdTipoUsu =getIntent().getIntExtra("tIdTipoUsu",0);
+        gIdMuni = Integer.parseInt(getIntent().getStringExtra("tIdMuni"));
+        gIdUsu = Integer.parseInt(getIntent().getStringExtra("tIdUsu"));
+        gIdTipoUsu = Integer.parseInt(getIntent().getStringExtra("tIdTipoUsu"));
         gNombreUsu = getIntent().getStringExtra("tNombreUsu");
-        gDominio =  getIntent().getStringExtra("tDominio");
+        gLatitud =  getIntent().getStringExtra("tLat");
+        gLongitud =  getIntent().getStringExtra("tLong");
 
-        tvDominio.setText(gDominio);
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+        String[] letra = {"Estacionado en lugar prohibido","Doble fila","Frente Garage","Circular en contra mano","Giro en U"};
+        spinner.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, letra));
 
+
+        // Esto es para evitar un error al ejecutar el intent de la camara.
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
         openCamera();
 
-//        button.setOnClickListener( new View.OnClickListener(){
-//        @Override public void onClick(View v){
-//            openCamera();
-//        }});
+
 
     }
 
-    private void openCamera(){
+    private void openCamera() {
         // Creo la carpeta.
-        File file=new File(Environment.getExternalStorageDirectory(),DirFotos);
+        File file = new File(Environment.getExternalStorageDirectory(), DirFotos);
         file.mkdirs();
 
+        //Defino Ruta y nombre de archivo.
         fNamePath = Environment.getExternalStorageDirectory() + File.separator + DirFotos;
         fNameName = CrearFName();
-
-
         File newFile = new File( fNamePath + file.separator + "tmp_" + fNameName);
 
+         //LLamo a la app camara.
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (Uri.fromFile(newFile)==null){
-
-        }
-
+        if (Uri.fromFile(newFile)==null){}
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(newFile));
         startActivityForResult(intent, 1); // PHOTO_CODE);
     }
@@ -131,12 +157,14 @@ public class multa extends AppCompatActivity {
 
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == RESULT_OK){
+
+
+        //if (resultCode == RESULT_OK){
             decodeBitmap(fNamePath + File.separator + "tmp_" + fNameName);
-        }else {
-            Toast.makeText(multa.this,"Multa cancelada." , Toast.LENGTH_LONG).show();
-            finish();
-        }
+      /*  }else {
+           Toast.makeText(multa.this,"Multa cancelada." , Toast.LENGTH_LONG).show();
+           finish();
+        }*/
     }
 
     private void decodeBitmap(String dir) {
@@ -209,7 +237,6 @@ public class multa extends AppCompatActivity {
         btAceptar.setEnabled(false);
         AsyncCallWS task = new AsyncCallWS();
         task.execute();
-
     }
 
 
@@ -233,7 +260,7 @@ public class multa extends AppCompatActivity {
                 Toast.makeText(getBaseContext(), "Multa registrada.", Toast.LENGTH_SHORT).show();
                 finish();
             };
-            String lsX= RetTxt;
+            // String lsX= RetTxt;
         }
 
         @Override
@@ -243,16 +270,18 @@ public class multa extends AppCompatActivity {
 
     }
 
-
     public void PedirWSMulta() {
 
         String SOAP_ACTION = "http://nowait.com.ar/SetMulta";
         String METHOD_NAME = "SetMulta";
         String NAMESPACE = "http://nowait.com.ar/";
-        //String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
-        String URL = "http://52.205.252.50:8080/wsEme.asmx";
+        String URL = "http://nowait.com.ar:8888/wsEme.asmx";
 
         try {
+
+            String gLat = Global.gGeoPoints.get(Global.gGeoPoints.size()-1).getLatitud();
+            String gLon = Global.gGeoPoints.get(Global.gGeoPoints.size()-1).getLongitud();
+
             SoapObject Request = new SoapObject(NAMESPACE, METHOD_NAME);
             Request.addProperty("tUsu", gEmail);
             Request.addProperty("tPass", gPass);
@@ -261,6 +290,8 @@ public class multa extends AppCompatActivity {
             Request.addProperty("tIdMuni", gIdMuni);
             Request.addProperty("tfName", fNameName);
             Request.addProperty("tFotoEnc64", FotoEnc64);
+            Request.addProperty("tLatitud", gLat);
+            Request.addProperty("tLongitud", gLon);
 
             SoapSerializationEnvelope soapEnvelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
             soapEnvelope.dotNet = true;
@@ -296,6 +327,7 @@ public class multa extends AppCompatActivity {
         return Bitmap.createBitmap(mBitmap, 0, 0, width, height,  matrix,  false);
     }
 
+
     public String getEncoded64ImageStringFromBitmap(Bitmap bitmap) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
@@ -305,5 +337,7 @@ public class multa extends AppCompatActivity {
 
         return imgString;
     }
+
+
 
 }

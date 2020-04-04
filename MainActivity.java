@@ -1,307 +1,270 @@
 package ar.com.nowait.emedido;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
-import android.app.AlertDialog;
+import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.Build;
-import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
-
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.ksoap2.SoapEnvelope;
-import org.ksoap2.serialization.PropertyInfo;
-import org.ksoap2.serialization.SoapObject;
-import org.ksoap2.serialization.SoapPrimitive;
-import org.ksoap2.serialization.SoapSerializationEnvelope;
-import org.ksoap2.transport.HttpTransportSE;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Formatter;
-import java.util.GregorianCalendar;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
+    TextView latitud, longitud;
+    TextView direccion;
 
-    SoapObject resSoap;
-    String RetId = "";
-    String RetTxt = "";
-    String RetFrente = "";
-    String RetDire = "";
-    int RetValWS =0;
-    String gEmail = "";
-    String gPass ="";
-    int gIdUsu = 0;
-    int gIdTipoUsu = 0;
-    String gNombreUsu = "";
-    int gIdMuni = 0;
+    String gLongitud = "";
+    String gLatitud = "";
 
-    private View mProgressView;
-    private EditText tbDomi;
-    private Button cbConsultar;
-    private ListView list;
+    String[] appPermissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.ACCESS_FINE_LOCATION};
+    private static final int PERMISSIONS_REQUEST_CODE = 1240;
 
-    ArrayList<Lista_entrada> datos = new ArrayList<Lista_entrada>();
+    int PERMISSION_ID = 44; //Permiso para acceder a UBICACION (LOCATE)
+    private static final String LOG_TAG_EXTERNAL_STORAGE = "EXTERNAL_STORAGE";
+    private static final int REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
 
-        mProgressView = findViewById(R.id.consu_progress);
-        cbConsultar = (Button) findViewById(R.id.cbConsultar);
-        tbDomi=(EditText) findViewById(R.id.tbDominio);
+        latitud = (TextView) findViewById(R.id.txtLatitud);
+        longitud = (TextView) findViewById(R.id.txtLongitud);
+        direccion = (TextView) findViewById(R.id.txtDireccion);
 
-        gEmail = getIntent().getStringExtra("tEmail");
-        gPass = getIntent().getStringExtra("tPass");
-        gIdMuni = Integer.parseInt(getIntent().getStringExtra("tIdMuni"));
-        gIdUsu = Integer.parseInt(getIntent().getStringExtra("tIdUsu"));
-        gIdTipoUsu = Integer.parseInt(getIntent().getStringExtra("tIdTipoUsu"));
-        gNombreUsu = getIntent().getStringExtra("tNombreUsu");
-
-        list = (ListView) findViewById(R.id.lista);
-        list.setAdapter(new Lista_adaptador(this, R.layout.entrada, datos){
+        Button butFotoM = (Button) findViewById(R.id.FotoM);
+        butFotoM.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onEntrada(Object entrada, View view) {
-                if (entrada != null) {
-                    TextView texto_superior_entrada = (TextView) view.findViewById(R.id.tvDominio);
-                    if (texto_superior_entrada != null)
-                        texto_superior_entrada.setText(((Lista_entrada) entrada).get_textoEncima());
-
-                    TextView texto_inferior_entrada = (TextView) view.findViewById(R.id.tvHora);
-                    if (texto_inferior_entrada != null)
-                        texto_inferior_entrada.setText(((Lista_entrada) entrada).get_textoDebajo());
-
-                    TextView texto_retval = (TextView) view.findViewById(R.id.tvRetVal);
-                    if (texto_retval != null)
-                    texto_retval.setText(((Lista_entrada) entrada).get_RetVal());
-
-                    //ImageView imagen_entrada = (ImageView) view.findViewById(R.id.imageView_imagen);
-                    //if (imagen_entrada != null)
-                    //    imagen_entrada.setImageResource(((Lista_entrada) entrada).get_idImagen());
-                }
+            public void onClick(View view) {
+                DoFotoM();
             }
         });
 
-        list.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        Button lbutEmol = (Button) findViewById(R.id.butEmol);
+        lbutEmol.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> pariente, View view, int posicion, long id) {
-                Lista_entrada elegido = (Lista_entrada) pariente.getItemAtPosition(posicion);
-                //CharSequence texto = elegido.get_RetVal();
-                String rv =elegido.get_RetVal();
-                final String lDomi = elegido.get_textoEncima();
-                if ( ! rv.startsWith ("Correcto")) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-                    alertDialog.setMessage("Desea generar una Multa para el dominio " + elegido.get_textoEncima() );
-                    alertDialog.setTitle("Infracción.");
-                    alertDialog.setPositiveButton("Sí", new DialogInterface.OnClickListener()
-                    {
-                        public void onClick(DialogInterface dialog, int which)
-                        {
-
-                            Intent i = new Intent( MainActivity.this , multa.class );
-                            i.putExtra("tIdUsu",gIdUsu);
-                            i.putExtra("tNombreUsu",gNombreUsu);
-                            i.putExtra("tIdTipoUsu",gIdTipoUsu);
-                            i.putExtra("tIdMuni",gIdMuni);
-                            i.putExtra("tEmail",gEmail);
-                            i.putExtra("tPass",gPass);
-                            i.putExtra("tDominio",lDomi);
-
-                            startActivity(i);
-
-                            //finish();
-
-                            //código Java si se ha pulsado sí
-                        }
-                    });
-                    alertDialog.setNegativeButton("No", new DialogInterface.OnClickListener()
-                    {
-                        public void onClick(DialogInterface dialog, int which)
-                        {
-                            //código java si se ha pulsado no
-                        }
-                    });
-                    alertDialog.show();
-
-                return true;
-                }
-                return true;
+            public void onClick(View view) {
+                DoEmol();
             }
         });
 
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //Toast.makeText(getApplicationContext(), "este es " + list.getItemAtPosition(position), Toast.LENGTH_LONG).show();
-                Lista_entrada elegido = (Lista_entrada) parent.getItemAtPosition(position);
-                tbDomi.setText(elegido.get_textoEncima());
-            }
-        });
-
-
-    }
-
-    private class AsyncCallWS extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected void onPreExecute() {}
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            PedirWSCli();
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            SetCtrl(true);
-
-            if (RetValWS<0) {
-                Toast.makeText(getBaseContext(), "Error en la respuesta del servidor.", Toast.LENGTH_SHORT).show();
-            }
-            String lsX= RetTxt;
-            if (! RetFrente.equals("")){
-                lsX = lsX +  "\n" + RetFrente +  "\n" + RetDire;
-            }
-
-            AddLine(tbDomi.getText().toString(), lsX);
-
-        }
-
-        @Override
-        protected void onCancelled() {
-            SetCtrl(true);
+        if (checkAndRequestPermissions()) {
+            locationStart();
         }
 
     }
 
-    public void PedirWSCli() {
-
-        String SOAP_ACTION = "http://nowait.com.ar/CheckDominio";
-        String METHOD_NAME = "CheckDominio";
-        String NAMESPACE = "http://nowait.com.ar/";
-        //String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
-        String URL = "http://52.205.252.50:8080/wsEme.asmx";
-
-        try {
-            SoapObject Request = new SoapObject(NAMESPACE, METHOD_NAME);
-            String mDominio= tbDomi.getText().toString();
-            Request.addProperty("tUsu", gEmail);
-            Request.addProperty("tPass", gPass);
-            Request.addProperty("tDominio",mDominio);
-            Request.addProperty("tIdZona", "1");
-
-            SoapSerializationEnvelope soapEnvelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-            soapEnvelope.dotNet = true;
-            soapEnvelope.setOutputSoapObject(Request);
-
-            HttpTransportSE transport = new HttpTransportSE(URL);
-
-            transport.call(SOAP_ACTION, soapEnvelope);
-
-            resSoap =(SoapObject)soapEnvelope.getResponse();
-            RetId=resSoap.getProperty("Id").toString();
-            RetTxt=resSoap.getProperty("Descri").toString();
-            RetFrente = "";
-            RetDire = "";
-            if (resSoap.getPropertyCount()>2){
-                RetFrente = "Frentista en Zona: " + resSoap.getProperty("FrenIdZona").toString();
-                RetFrente = RetFrente + " de "  + resSoap.getProperty("FrenDesde").toString() + " a " +resSoap.getProperty("FrenHasta").toString();
-                RetDire = resSoap.getProperty("FrenDire").toString();
-            }
-
-            RetValWS=0;
-
-        } catch (Exception ex) {
-            RetId="-1";
-            RetTxt="Error accediendo al servidor.";
-            RetFrente = "";
-            RetDire = "";
-
-            RetValWS=-1;
+    private void locationStart() {
+        LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Localizacion Local = new Localizacion();
+        Local.setMainActivity(this);
+        //assert mlocManager != null;
+        final boolean gpsEnabled = mlocManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if (!gpsEnabled) {
+            Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            startActivity(settingsIntent);
         }
-
-    }
-
-    private void AddLine(String tDomi,  String tTxt ){
-        String tHora;
-        Calendar c = new GregorianCalendar();
-        tHora = String.format("%02d", c.get(Calendar.HOUR) );
-        tHora = tHora + ":" + String.format("%02d", c.get(Calendar.MINUTE) );
-
-        datos.add(0,new Lista_entrada(tDomi,tHora, tTxt));
-
-        ((Lista_adaptador)list.getAdapter()).notifyDataSetChanged();
-
-        if (!RetId.equals("-1")){
-            tbDomi.setText("");
-        }
-    }
-
-    //Este método se ejecutará cuando se presione el botón
-    public void Consultar(View view) {
-        RetId="";
-        RetTxt="";
-        RetFrente = "";
-        RetDire = "";
-
-        tbDomi = (EditText)this.findViewById(R.id.tbDominio);
-        String lsDomi=tbDomi.getText().toString().toUpperCase();
-        lsDomi=lsDomi.trim();
-
-        if (lsDomi.length()<6){
-            Toast.makeText(getBaseContext(), "Ingrese un dominio válido.", Toast.LENGTH_SHORT).show();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, 1000);
             return;
         }
-
-        tbDomi.setText(lsDomi);
-        SetCtrl(false);
-
-        AsyncCallWS task = new AsyncCallWS();
-        task.execute();
+        mlocManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, (LocationListener) Local);
+        mlocManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, (LocationListener) Local);
+        latitud.setText("Localización agregada");
+        direccion.setText("");
     }
 
-    private void SetCtrl(Boolean tModo){
-    if (tModo) {
-        mProgressView.setVisibility(View.INVISIBLE);
-        tbDomi.setEnabled(true);
-        cbConsultar.setEnabled(true);
-        list.setEnabled(true);
+    public boolean checkAndRequestPermissions() {
 
-    }else{
-        mProgressView.setVisibility(View.VISIBLE);
-        tbDomi.setEnabled(false);
-        cbConsultar.setEnabled(false);
-        list.setEnabled(false);
+        List<String> listPermissionsNeeded = new ArrayList<>();
+
+        for (String perm : appPermissions) {
+            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                listPermissionsNeeded.add(perm);
+            }
+        }
+
+        if (!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), PERMISSIONS_REQUEST_CODE);
+            return false;
+        }
+
+        return true;
 
     }
 
+    private void DoFotoM() {
+
+        GeoTrack mGT = new GeoTrack();
+
+        mGT.UpPoints();
+
+        Intent i = new Intent(MainActivity.this, multa.class);
+
+        i.putExtra("tIdUsu", "1");
+        i.putExtra("tNombreUsu", "Fabio");
+        i.putExtra("tIdTipoUsu", "1");
+        i.putExtra("tIdMuni", "1");
+        i.putExtra("tEmail", "fabio_d_rossi@hotmail.com");
+        i.putExtra("tPass", "123456");
+        i.putExtra("tDominio", "333333");
+
+        startActivity(i);
 
     }
+
+    private void DoEmol() {
+        Intent i = new Intent(MainActivity.this, MenuPrin.class);
+
+        i.putExtra("tIdUsu", "1");
+        i.putExtra("tNombreUsu", "Fabio");
+        i.putExtra("tIdTipoUsu", "1");
+        i.putExtra("tIdMuni", "1");
+        i.putExtra("tEmail", "fabio_d_rossi@hotmail.com");
+        i.putExtra("tPass", "123456");
+
+
+
+        startActivity(i);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PERMISSIONS_REQUEST_CODE) {
+            HashMap<String, Integer> permissionResults = new HashMap<>();
+            int deniedCount = 0;
+
+            for (int i = 0; i < grantResults.length; i++) {
+                if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
+                    permissionResults.put(permissions[i], grantResults[i]);
+                    deniedCount++;
+
+                }
+
+            }
+
+            if (deniedCount == 0) {
+                //Init app
+            } else {
+
+               /* for (Map.Entry<String, Integer> entry : permissionResults.entrySet()){
+                    String permName = entry.getKey();
+                    int permResult = entry.getValue();
+                }*/
+
+            }
+
+            int grantResultsLength = grantResults.length;
+            if (grantResultsLength > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(getApplicationContext(), "You grant write external storage permission. Please click original button again to continue.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "You denied write external storage permission.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    public void setLocation(Location loc) {
+        //Obtener la direccion de la calle a partir de la latitud y la longitud
+        if (loc.getLatitude() != 0.0 && loc.getLongitude() != 0.0) {
+            try {
+                Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+                List<Address> list = geocoder.getFromLocation(
+                        loc.getLatitude(), loc.getLongitude(), 1);
+                if (!list.isEmpty()) {
+                    Address DirCalle = list.get(0);
+                    direccion.setText(DirCalle.getAddressLine(0));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    /* Aqui empieza la Clase Localizacion */
+    public class Localizacion implements LocationListener {
+        MainActivity mainActivity;
+
+        public MainActivity getMainActivity() {
+            return mainActivity;
+        }
+
+        public void setMainActivity(MainActivity mainActivity) {
+            this.mainActivity = mainActivity;
+        }
+
+        @Override
+        public void onLocationChanged(Location loc) {
+            // Este metodo se ejecuta cada vez que el GPS recibe nuevas coordenadas
+            // debido a la deteccion de un cambio de ubicacion
+
+            gLatitud = String.valueOf(loc.getLatitude());
+            gLongitud = String.valueOf(loc.getLongitude());
+
+            latitud.setText(gLatitud);
+            longitud.setText(gLongitud);
+
+            this.mainActivity.setLocation(loc);
+
+            GeoTrack mGT = new GeoTrack();
+
+            mGT.AddPoint(gLatitud, gLongitud);
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            // Este metodo se ejecuta cuando el GPS es desactivado
+            latitud.setText("GPS Desactivado");
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            // Este metodo se ejecuta cuando el GPS es activado
+            latitud.setText("GPS Activado");
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            switch (status) {
+                case LocationProvider.AVAILABLE:
+                    Log.d("debug", "LocationProvider.AVAILABLE");
+                    break;
+                case LocationProvider.OUT_OF_SERVICE:
+                    Log.d("debug", "LocationProvider.OUT_OF_SERVICE");
+                    break;
+                case LocationProvider.TEMPORARILY_UNAVAILABLE:
+                    Log.d("debug", "LocationProvider.TEMPORARILY_UNAVAILABLE");
+                    break;
+            }
+        }
+    }
+
+
 }

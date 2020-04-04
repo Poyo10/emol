@@ -45,18 +45,16 @@ import java.util.List;
 
 public class LoginActivity extends AppCompatActivity {
 
-    //String TAG = "Response";
     SoapObject resSoap;
-    //String[][] zzz=new String[10][4];
-    String gIdUsu="";
-    String gNombreUsu="";
-    String gIdTipoUsu="";
-    String gIdMuni="";
+
+    String gIdUsu = "";
+    String gNombreUsu = "";
+    String gIdTipoUsu = "";
+    String gIdMuni = "";
 
     /**
      * Id to identity READ_CONTACTS permission request.
      */
-    //private static final int REQUEST_READ_CONTACTS = 0;
 
     /**
      * A dummy authentication store containing known user names and passwords.
@@ -97,7 +95,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
 
-        SharedPreferences prefe=getSharedPreferences("datos", Context.MODE_PRIVATE);
+        SharedPreferences prefe = getSharedPreferences("datos", Context.MODE_PRIVATE);
         //ojo
         //mEmailView.setText(prefe.getString("mail",""));
 
@@ -112,7 +110,6 @@ public class LoginActivity extends AppCompatActivity {
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
-
 
 
     private void attemptLogin() {
@@ -162,17 +159,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private int DoLogin(String tUsu, String tPass) {
-        gIdUsu="0";
+
+        gIdUsu = "0";
         String SOAP_ACTION = "http://nowait.com.ar/Login";
         String METHOD_NAME = "Login";
         String NAMESPACE = "http://nowait.com.ar/";
-        //String URL = "http://emol.nowait.com.ar:8080/wsEme.asmx";
-
-
-       // String SOAP_ACTION = "http://52.205.252.50/Login";
-       // String METHOD_NAME = "Login";
-       // String NAMESPACE = "http://52.205.252.50/";
-        String URL = "http://52.205.252.50:8080/wsEme.asmx";
+        String URL = "http://nowait.com.ar:8888/wsEme.asmx";
 
         try {
             SoapObject Request = new SoapObject(NAMESPACE, METHOD_NAME);
@@ -187,17 +179,24 @@ public class LoginActivity extends AppCompatActivity {
 
             transport.call(SOAP_ACTION, soapEnvelope);
 
-            resSoap =(SoapObject)soapEnvelope.getResponse();
-            gIdUsu=resSoap.getProperty(0).toString();
-            gNombreUsu=resSoap.getProperty(1).toString();
-            gIdTipoUsu=resSoap.getProperty(2).toString();
-            gIdMuni=resSoap.getProperty(3).toString();
+            resSoap = (SoapObject) soapEnvelope.getResponse();
+            gIdUsu = resSoap.getProperty(0).toString();
+            gNombreUsu = resSoap.getProperty(1).toString();
+            gIdTipoUsu = resSoap.getProperty(2).toString();
+            gIdMuni = resSoap.getProperty(3).toString();
+            if (resSoap.getProperty(4).toString().contains("M")) {
 
-        } catch (Exception ex) {
-            gIdUsu="-1";
-  //          Log.e(TAG, "miError: " + ex.getMessage());
-  //          Toast.makeText(getBaseContext(), "miError: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
-  //          RetValWS=-1;
+                //Toast.makeText(getBaseContext(), "miError: " , Toast.LENGTH_SHORT).show();
+                //
+                //Log.e("LoginActivity", "eeeeeee");
+            }
+
+
+        } catch (Exception e) {
+            gIdUsu = "-1";
+            //          Log.e(TAG, "miError: " + ex.getMessage());
+            //          Toast.makeText(getBaseContext(), "miError: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            //          RetValWS=-1;
         }
         return Integer.parseInt(gIdUsu);
     }
@@ -265,7 +264,7 @@ public class LoginActivity extends AppCompatActivity {
 
             try {
 
-                DoLogin(mEmail,mPassword);
+                DoLogin(mEmail, mPassword);
                 Thread.sleep(0);
             } catch (InterruptedException e) {
                 return false;
@@ -280,34 +279,34 @@ public class LoginActivity extends AppCompatActivity {
             //mAuthTask = null;
             showProgress(false);
 
-            if (success && Integer.parseInt(gIdUsu)>0) {
+            if (success && Integer.parseInt(gIdUsu) > 0) {
 
-                SharedPreferences preferencias=getSharedPreferences("datos",Context.MODE_PRIVATE);
-                Editor editor=preferencias.edit();
+                SharedPreferences preferencias = getSharedPreferences("datos", Context.MODE_PRIVATE);
+                Editor editor = preferencias.edit();
                 editor.putString("mail", mEmailView.getText().toString());
                 editor.commit();
 
-                Intent i = new Intent( LoginActivity.this , MainActivity.class );
-                i.putExtra("tIdUsu",gIdUsu);
-                i.putExtra("tNombreUsu",gNombreUsu);
-                i.putExtra("tIdTipoUsu",gIdTipoUsu);
-                i.putExtra("tIdMuni",gIdMuni);
-                i.putExtra("tEmail",mEmail);
-                i.putExtra("tPass",mPassword);
+                Intent i = new Intent(LoginActivity.this, MainActivity.class);
+                i.putExtra("tIdUsu", gIdUsu);
+                i.putExtra("tNombreUsu", gNombreUsu);
+                i.putExtra("tIdTipoUsu", gIdTipoUsu);
+                i.putExtra("tIdMuni", gIdMuni);
+                i.putExtra("tEmail", mEmail);
+                i.putExtra("tPass", mPassword);
                 startActivity(i);
 
                 finish();
 
             } else {
-                if (Integer.parseInt(gIdUsu)==-1) {
+                if (Integer.parseInt(gIdUsu) == -1) {
 
-                    Toast.makeText(LoginActivity.this, getString(R.string.error_access_server) , Toast.LENGTH_LONG).show();
+                    Toast.makeText(LoginActivity.this, getString(R.string.error_access_server), Toast.LENGTH_LONG).show();
 
                     //mPasswordView.setError(getString(R.string.error_access_server));
                     //mPasswordView.requestFocus();
 
-                }else{
-                    Toast.makeText(LoginActivity.this,R.string.error_incorrect_password , Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(LoginActivity.this, R.string.error_incorrect_password, Toast.LENGTH_LONG).show();
                     //mPasswordView.setError(getString(R.string.error_incorrect_password));
                     mPasswordView.requestFocus();
                 }
